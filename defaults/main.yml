@@ -1,0 +1,45 @@
+---
+# Path where the self-signed certificate is stored.
+influxdb_ssl_selfsigned_path: /etc/ssl/influxdb-selfsigned.crt
+
+# Path where the self-signed certificate's private key is stored.
+influxdb_ssl_privatekey_path: /etc/ssl/influxdb-selfsigned.key
+
+# Path where the self-signed certificate's signing request is stored.
+influxdb_ssl_csr_path: /etc/ssl/influxdb-selfsigned.csr
+
+# Enable user authentication over HTTP/HTTPS.
+influxdb_auth_enabled: yes
+
+# Admin user name. There always must be an admin user, otherwise influxdb will refuse to connect.
+influxdb_admin_user_name: admin
+
+# Admin user password. Override!
+#influxdb_admin_user_password: password
+
+# A list of dictionaries. Passed as is to the "influxdb_user" module.
+# https://docs.ansible.com/ansible/latest/modules/influxdb_user_module.html
+# Example:
+# influxdb_users:
+#   - user_name: admin
+#     user_password: password
+#     login_username: root
+#     login_password: password
+#     state: present
+#     admin: yes
+#     grants:
+#       - database: 'collectd'
+#         privilege: 'WRITE'
+#       - database: 'graphite'
+#         privilege: 'READ'
+influxdb_users: []
+
+# A list of dictionaries. Passed as is to the "influxdb_database" module.
+# https://docs.ansible.com/ansible/latest/modules/influxdb_database_module.html
+# Example:
+# influxdb_databases:
+#   - database_name: db1
+#     login_username: root
+#     login_password: password
+#     state: present
+influxdb_databases: []

@@ -1,0 +1,13 @@
+---
+- name: start influxdb
+  service: name=influxdb state=started
+
+- name: restart influxdb
+  service: name=influxdb state=restarted
+
+- name: create influxdb admin user
+  influxdb_user:
+    admin: yes
+    state: present
+    user_name: "{{ influxdb_admin_user_name }}"
+    user_password: "{{ influxdb_admin_user_password }}"
