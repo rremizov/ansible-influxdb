@@ -25,12 +25,14 @@
 
 - name: Add InfluxDB repository.
   apt_repository:
-    repo: "deb [signed-by=/etc/apt/trusted.gpg.d/influxdata-archive.key] https://repos.influxdata.com/{{ ansible_lsb.id|lower }} {{ ansible_lsb.codename }} stable"
+    repo: "deb [signed-by=/etc/apt/trusted.gpg.d/influxdata-archive.asc] https://repos.influxdata.com/{{ ansible_lsb.id|lower }} {{ ansible_lsb.codename }} stable"
     state: present
 
 - name: Install InfluxDB.
   apt:
-    name: influxdb influxdata-archive-keyring
+    name: 
+      - influxdb 
+      - influxdata-archive-keyring
     state: present
   notify:
     - start influxdb
