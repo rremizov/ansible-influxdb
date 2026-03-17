@@ -41,7 +41,8 @@
     - start influxdb
     - create influxdb admin user
 
-- meta: flush_handlers # Ensure InfluxDB is started before continuing.
+- name: Ensure InfluxDB is started before continuing.
+  meta: flush_handlers
 
 - name: Generate an OpenSSL private key.
   openssl_privatekey:
@@ -71,7 +72,8 @@
     mode: 0644
   notify: restart influxdb
 
-- meta: flush_handlers # Ensure InfluxDB is restarted before continuing.
+- name: Ensure InfluxDB is restarted before continuing.
+  meta: flush_handlers
 
 - name: Create InfluxDB databases
   influxdb_database:
