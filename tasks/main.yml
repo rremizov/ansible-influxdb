@@ -6,17 +6,9 @@
   vars:
     packages:
       - apt-transport-https
-      - python3-pip
-      - python3-setuptools
-
-- name: Install python dependencies.
-  pip:
-    name: "{{ packages }}"
-  vars:
-    packages:
-      - requests
-      - influxdb
-      - cryptography # To generate self-signed SSL certificates.
+      - python3-requests
+      - python3-influxdb
+      - python3-cryptography
 
 - name: Add InfluxDB key.
   get_url:
