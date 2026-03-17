@@ -1,12 +1,16 @@
 ---
-- name: start influxdb
-  service: name=influxdb state=started
+- name: Start influxdb
+  ansible.builtin.service:
+    name: influxdb
+    state: started
 
-- name: restart influxdb
-  service: name=influxdb state=restarted
+- name: Restart influxdb
+  ansible.builtin.service:
+    name: influxdb
+    state: restarted
 
-- name: create influxdb admin user
-  influxdb_user:
+- name: Create influxdb admin user
+  community.general.influxdb_user:
     admin: true
     state: present
     user_name: "{{ influxdb_admin_user_name }}"
