@@ -9,13 +9,13 @@ influxdb_ssl_privatekey_path: /etc/ssl/influxdb-selfsigned.key
 influxdb_ssl_csr_path: /etc/ssl/influxdb-selfsigned.csr
 
 # Enable user authentication over HTTP/HTTPS.
-influxdb_auth_enabled: yes
+influxdb_auth_enabled: false
 
 # Admin user name. There always must be an admin user, otherwise influxdb will refuse to connect.
 influxdb_admin_user_name: admin
 
 # Admin user password. Override!
-#influxdb_admin_user_password: password
+# influxdb_admin_user_password: password
 
 # A list of dictionaries. Passed as is to the "influxdb_user" module.
 # https://docs.ansible.com/ansible/latest/modules/influxdb_user_module.html

@@ -7,7 +7,7 @@
 
 - name: create influxdb admin user
   influxdb_user:
-    admin: yes
+    admin: true
     state: present
     user_name: "{{ influxdb_admin_user_name }}"
     user_password: "{{ influxdb_admin_user_password }}"

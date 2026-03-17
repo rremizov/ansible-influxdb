@@ -25,13 +25,16 @@
 
 - name: Add InfluxDB repository.
   apt_repository:
-    repo: "deb [signed-by=/etc/apt/trusted.gpg.d/influxdata-archive.asc] https://repos.influxdata.com/{{ ansible_lsb.id|lower }} {{ ansible_lsb.codename }} stable"
+    repo: >-
+      deb [signed-by=/etc/apt/trusted.gpg.d/influxdata-archive.asc]
+      https://repos.influxdata.com/{{ ansible_lsb.id|lower }}
+      {{ ansible_lsb.codename }} stable
     state: present
 
 - name: Install InfluxDB.
   apt:
-    name: 
-      - influxdb 
+    name:
+      - influxdb
       - influxdata-archive-keyring
     state: present
   notify:
@@ -87,7 +90,7 @@
     validate_certs: "{{ item.validate_certs|default(omit) }}"
   loop: "{{ influxdb_databases }}"
   loop_control:
-    label: "{{ item.hostname|default('localhost') }}:{{ item.port|default(8086) }}/{{ item.database_name }}"
+    label: "{{ item.hostname | default('localhost') }}/{{ item.database_name }}"
 
 - name: Create InfluxDB users.
   influxdb_user:
@@ -111,4 +114,4 @@
     validate_certs: "{{ item.validate_certs|default(omit) }}"
   loop: "{{ influxdb_users }}"
   loop_control:
-    label: "{{ item.user_name }}@{{ item.hostname|default('localhost') }}:{{ item.port|default(8086) }}"
+    label: "{{ item.user_name }}@{{ item.hostname | default('localhost') }}"
