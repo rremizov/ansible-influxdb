@@ -40,8 +40,8 @@
 - name: Generate an OpenSSL private key.
   community.crypto.openssl_privatekey:
     path: "{{ influxdb_ssl_privatekey_path }}"
-    group: influxdb
-    mode: 0640
+    owner: influxdb
+    mode: 0600
 
 - name: Generate an OpenSSL CSR.
   community.crypto.openssl_csr:
