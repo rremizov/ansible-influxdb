@@ -1,6 +1,41 @@
 ---
+# Repository tasks run first: apt aborts with "Conflicting values set for
+# option Signed-By" when a legacy trusted.gpg.d source line for this repo
+# coexists with the keyrings-based one, so cleanup must precede any apt call.
+
+- name: Ensure apt keyrings directory exists.
+  file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: "0755"
+
+- name: Add InfluxDB key.
+  get_url:
+    url: "https://repos.influxdata.com/influxdata-archive.key"
+    dest: /etc/apt/keyrings/influxdata-archive.asc
+    mode: "0644"
+    force: true
+
+- name: Remove legacy InfluxDB key.
+  file:
+    path: /etc/apt/trusted.gpg.d/influxdata-archive.asc
+    state: absent
+
+- name: Remove legacy InfluxDB repository entries.
+  apt_repository:
+    repo: "{{ item }}"
+    state: absent
+  loop:
+    - "deb [signed-by=/etc/apt/trusted.gpg.d/influxdata-archive_compat.asc] https://repos.influxdata.com/{{ ansible_lsb.id|lower }} {{ ansible_lsb.codename }} stable"
+    - "deb [signed-by=/etc/apt/trusted.gpg.d/influxdata-archive.asc] https://repos.influxdata.com/{{ ansible_lsb.id|lower }} {{ ansible_lsb.codename }} stable"
+
+- name: Add InfluxDB repository.
+  apt_repository:
+    repo: "deb [signed-by=/etc/apt/keyrings/influxdata-archive.asc] https://repos.influxdata.com/{{ ansible_lsb.id|lower }} {{ ansible_lsb.codename }} stable"
+    state: present
+
 - name: Install system dependencies.
-  ansible.builtin.apt:
+  apt:
     name: "{{ packages }}"
     update_cache: true
   vars:
@@ -10,103 +45,87 @@
       - python3-influxdb
       - python3-cryptography
 
-- name: Add InfluxDB key.
-  ansible.builtin.get_url:
-    url: "https://repos.influxdata.com/influxdata-archive.key"
-    dest: /etc/apt/trusted.gpg.d/influxdata-archive.asc
-    mode: "0644"
-
-- name: Add InfluxDB repository.
-  ansible.builtin.apt_repository:
-    repo: >-
-      deb [signed-by=/etc/apt/trusted.gpg.d/influxdata-archive.asc]
-      https://repos.influxdata.com/{{ ansible_lsb.id | lower }}
-      {{ ansible_lsb.codename }} stable
-    state: present
-
 - name: Install InfluxDB.
-  ansible.builtin.apt:
-    name:
-      - influxdb
+  apt:
+    name: 
+      - influxdb 
       - influxdata-archive-keyring
     state: present
   notify:
-    - Start influxdb
-    - Create influxdb admin user
+    - start influxdb
+    - create influxdb admin user
 
-- name: Ensure InfluxDB is started before continuing.
-  ansible.builtin.meta: flush_handlers
+- meta: flush_handlers # Ensure InfluxDB is started before continuing.
 
 - name: Generate an OpenSSL private key.
-  community.crypto.openssl_privatekey:
+  openssl_privatekey:
     path: "{{ influxdb_ssl_privatekey_path }}"
     owner: influxdb
     mode: 0600
 
 - name: Generate an OpenSSL CSR.
-  community.crypto.openssl_csr:
+  openssl_csr:
     path: "{{ influxdb_ssl_csr_path }}"
     privatekey_path: "{{ influxdb_ssl_privatekey_path }}"
     common_name: "{{ inventory_hostname }}"
 
 - name: Generate a Self Signed OpenSSL certificate.
-  community.crypto.x509_certificate:
+  openssl_certificate:
     path: "{{ influxdb_ssl_selfsigned_path }}"
     privatekey_path: "{{ influxdb_ssl_privatekey_path }}"
     csr_path: "{{ influxdb_ssl_csr_path }}"
     provider: selfsigned
 
 - name: Install InfluxDB configuration.
-  ansible.builtin.template:
+  template:
     src: "influxdb.conf.j2"
     dest: "/etc/influxdb/influxdb.conf"
     owner: "root"
     group: "root"
     mode: 0644
-  notify: Restart influxdb
+  notify: restart influxdb
 
-- name: Ensure InfluxDB is restarted before continuing.
-  ansible.builtin.meta: flush_handlers
+- meta: flush_handlers # Ensure InfluxDB is restarted before continuing.
 
 - name: Create InfluxDB databases
-  community.general.influxdb_database:
+  influxdb_database:
     database_name: "{{ item.database_name }}"
-    hostname: "{{ item.hostname | default(omit) }}"
-    password: "{{ item.password | default(omit) }}"
-    login_password: "{{ item.login_password | default(omit) }}"
-    port: "{{ item.port | default(omit) }}"
-    ssl: "{{ item.ssl | default(omit) }}"
-    state: "{{ item.state | default(omit) }}"
-    timeout: "{{ item.timeout | default(omit) }}"
-    udp_port: "{{ item.udp_port | default(omit) }}"
-    use_udp: "{{ item.use_udp | default(omit) }}"
-    username: "{{ item.username | default(omit) }}"
-    login_username: "{{ item.login_username | default(omit) }}"
-    validate_certs: "{{ item.validate_certs | default(omit) }}"
+    hostname: "{{ item.hostname|default(omit) }}"
+    password: "{{ item.password|default(omit) }}"
+    login_password: "{{ item.login_password|default(omit) }}"
+    port: "{{ item.port|default(omit) }}"
+    ssl: "{{ item.ssl|default(omit) }}"
+    state: "{{ item.state|default(omit) }}"
+    timeout: "{{ item.timeout|default(omit) }}"
+    udp_port: "{{ item.udp_port|default(omit) }}"
+    use_udp: "{{ item.use_udp|default(omit) }}"
+    username: "{{ item.username|default(omit) }}"
+    login_username: "{{ item.login_username|default(omit) }}"
+    validate_certs: "{{ item.validate_certs|default(omit) }}"
   loop: "{{ influxdb_databases }}"
   loop_control:
-    label: "{{ item.hostname | default('localhost') }}/{{ item.database_name }}"
+    label: "{{ item.hostname|default('localhost') }}:{{ item.port|default(8086) }}/{{ item.database_name }}"
 
 - name: Create InfluxDB users.
-  community.general.influxdb_user:
-    admin: "{{ item.admin | default(omit) }}"
-    grants: "{{ item.grants | default(omit) }}"
-    hostname: "{{ item.hostname | default(omit) }}"
-    password: "{{ item.password | default(omit) }}"
-    login_password: "{{ item.login_password | default(omit) }}"
-    port: "{{ item.port | default(omit) }}"
-    proxies: "{{ item.proxies | default(omit) }}"
-    retries: "{{ item.retries | default(omit) }}"
-    ssl: "{{ item.ssl | default(omit) }}"
-    state: "{{ item.state | default(omit) }}"
-    timeout: "{{ item.timeout | default(omit) }}"
-    udp_port: "{{ item.udp_port | default(omit) }}"
-    use_udp: "{{ item.use_udp | default(omit) }}"
+  influxdb_user:
+    admin: "{{ item.admin|default(omit) }}"
+    grants: "{{ item.grants|default(omit) }}"
+    hostname: "{{ item.hostname|default(omit) }}"
+    password: "{{ item.password|default(omit) }}"
+    login_password: "{{ item.login_password|default(omit) }}"
+    port: "{{ item.port|default(omit) }}"
+    proxies: "{{ item.proxies|default(omit) }}"
+    retries: "{{ item.retries|default(omit) }}"
+    ssl: "{{ item.ssl|default(omit) }}"
+    state: "{{ item.state|default(omit) }}"
+    timeout: "{{ item.timeout|default(omit) }}"
+    udp_port: "{{ item.udp_port|default(omit) }}"
+    use_udp: "{{ item.use_udp|default(omit) }}"
     user_name: "{{ item.user_name }}"
-    user_password: "{{ item.user_password | default(omit) }}"
-    username: "{{ item.username | default(omit) }}"
-    login_username: "{{ item.login_username | default(omit) }}"
-    validate_certs: "{{ item.validate_certs | default(omit) }}"
+    user_password: "{{ item.user_password|default(omit) }}"
+    username: "{{ item.username|default(omit) }}"
+    login_username: "{{ item.login_username|default(omit) }}"
+    validate_certs: "{{ item.validate_certs|default(omit) }}"
   loop: "{{ influxdb_users }}"
   loop_control:
-    label: "{{ item.user_name }}@{{ item.hostname | default('localhost') }}"
+    label: "{{ item.user_name }}@{{ item.hostname|default('localhost') }}:{{ item.port|default(8086) }}"
